@@ -1,8 +1,9 @@
-package com.sparke.networks.personality;
+package com.sparke.networks.personality.query.template;
 
 import com.mongodb.BasicDBObjectBuilder;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
+import com.sparke.networks.personality.PersonalityApplication;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodStarter;
 import de.flapdoodle.embed.mongo.config.IMongodConfig;
@@ -15,7 +16,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.data.domain.Example;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -28,24 +31,27 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ContextConfiguration(classes = PersonalityApplication.class)
 @DataMongoTest
 @ExtendWith(SpringExtension.class)
-public class PersonalityApplicationTests {
+public class TemplateRepositotyTests {
+
+    private static final String LOCALHOST = "localhost";
+    private static final int PORT = 27017;
 
     private MongodExecutable mongodExecutable;
     private MongoTemplate mongoTemplate;
 
+    @Autowired
+    TemplateRepository templateRepository;
+
     @BeforeEach
     void setUp() throws IOException {
-		String ip = "localhost";
-		int port = 27017;
-
 		IMongodConfig mongodConfig = new MongodConfigBuilder().version(Version.Main.PRODUCTION)
-				.net(new Net(ip, port, Network.localhostIsIPv6()))
+				.net(new Net(LOCALHOST, PORT, Network.localhostIsIPv6()))
 				.build();
 
 		MongodStarter starter = MongodStarter.getDefaultInstance();
 		mongodExecutable = starter.prepare(mongodConfig);
 		mongodExecutable.start();
-		mongoTemplate = new MongoTemplate(new MongoClient(ip, port), "test");
+		mongoTemplate = new MongoTemplate(new MongoClient(LOCALHOST, PORT), "test");
 	}
 
     @AfterEach
@@ -71,4 +77,22 @@ public class PersonalityApplicationTests {
                 .containsOnly("value");
     }
 
+    @DisplayName("given I have a template"
+            + " when save template "
+            + " then template is saved")
+    @Test
+    public void saveTemplate() {
+        //given
+        Template template = new Template("template");
+
+        //when
+        templateRepository.save(template);
+
+        //then
+        Template templateSaved = templateRepository.findOne(
+                Example.of(new Template("template"))
+        ).get();
+
+        assertThat(template).isEqualTo(new Template("template"));
+    }
 }
